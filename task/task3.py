@@ -614,11 +614,10 @@ def generate_text(model, src, dataset, device, max_length=20):
 #     corpus_path = '../data/tiny_shakespeare.txt'
 #     lm_model, lm_tokenizer = train_language_model(corpus_path=corpus_path)
 
-# 这是一个基于您原始代码的训练函数，只改变了返回值的形式
 def run_single_training_original(data_path, embed_dim, num_heads, n_encoder_layers, n_decoder_layers,
                                  num_hiddens, dropout, batch_size, learning_rate, num_epochs,
                                  device='cuda' if torch.cuda.is_available() else 'cpu'):
-    # --- 您原始代码的绝大部分都保持不变 ---
+
     dataset = AdditionDataset(data_path)
     train_size = int(0.8 * len(dataset))
     test_size = len(dataset) - train_size
@@ -626,7 +625,6 @@ def run_single_training_original(data_path, embed_dim, num_heads, n_encoder_laye
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
-    # 这里的 Transformer 模型实例化将使用传入的参数
     model = Transformer(src_vocab_size=dataset.vocab_size, tgt_vocab_size=dataset.vocab_size,
                         embed_dim=embed_dim, num_heads=num_heads, n_encoder_layers=n_encoder_layers,
                         n_decoder_layers=n_decoder_layers, num_hiddens=num_hiddens, dropout=dropout,
@@ -635,19 +633,16 @@ def run_single_training_original(data_path, embed_dim, num_heads, n_encoder_laye
     criterion = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     
-    # 我们只关心测试集的结果用于绘图对比
     test_losses_history = []
     test_accuracies_history = []
 
     for epoch in range(num_epochs):
         model.train()
-        # --- 训练循环 (完全是您原始的代码) ---
         for batch_idx, (src, tgt) in enumerate(train_loader):
             src, tgt = src.to(device), tgt.to(device)
             tgt_input = tgt[:, :-1]
             tgt_output = tgt[:, 1:]
             
-            # 使用您原始的掩码逻辑
             src_mask = create_src_mask(src, pad_idx=0)
             tgt_mask = create_tgt_mask(tgt_input, pad_idx=0)
             
@@ -657,7 +652,6 @@ def run_single_training_original(data_path, embed_dim, num_heads, n_encoder_laye
             loss.backward()
             optimizer.step()
         
-        # --- 评估循环 (完全是您原始的代码) ---
         model.eval()
         total_test_loss = 0
         test_correct_predictions = 0
@@ -668,7 +662,7 @@ def run_single_training_original(data_path, embed_dim, num_heads, n_encoder_laye
                 tgt_input = tgt[:, :-1]
                 tgt_output = tgt[:, 1:]
 
-                # 使用您原始的掩码逻辑
+    
                 src_mask = create_src_mask(src, pad_idx=0)
                 tgt_mask = create_tgt_mask(tgt_input, pad_idx=0)
 
@@ -688,7 +682,6 @@ def run_single_training_original(data_path, embed_dim, num_heads, n_encoder_laye
         
         print(f"  (LR={learning_rate}, Heads={num_heads}, Depth={n_encoder_layers}) Epoch {epoch+1} -> Test Loss: {avg_test_loss:.4f}, Test Acc: {test_accuracy:.4f}")
 
-    # *** 关键改动：不再绘图，而是返回历史记录 ***
     return test_losses_history, test_accuracies_history
 
 # (1)测试不同学习率
@@ -698,15 +691,12 @@ def test_learning_rates_simple(data_path, num_epochs=10):
 
     for lr in learning_rates_to_test:
         print(f"\n{'='*20} Testing Learning Rate: {lr} {'='*20}")
-        # 固定其他参数，只改变学习率
         test_losses, test_accs = run_single_training_original(
             data_path=data_path, embed_dim=128, num_heads=4, n_encoder_layers=3, 
             n_decoder_layers=3, num_hiddens=256, dropout=0.1, batch_size=32, 
             learning_rate=lr, num_epochs=num_epochs
         )
         results[lr] = {'test_loss': test_losses, 'test_acc': test_accs}
-    
-    # 统一绘图
     plt.figure(figsize=(16, 6))
     plt.subplot(1, 2, 1)
     for lr, data in results.items():
@@ -729,7 +719,6 @@ def test_attention_heads_simple(data_path, num_epochs=10):
 
     for n_heads in num_heads_to_test:
         print(f"\n{'='*20} Testing Attention Heads: {n_heads} {'='*20}")
-        # 固定其他参数，只改变注意力头数
         test_losses, test_accs = run_single_training_original(
             data_path=data_path, embed_dim=128, num_heads=n_heads, n_encoder_layers=3, 
             n_decoder_layers=3, num_hiddens=256, dropout=0.1, batch_size=32, 
@@ -737,7 +726,6 @@ def test_attention_heads_simple(data_path, num_epochs=10):
         )
         results[n_heads] = {'test_loss': test_losses, 'test_acc': test_accs}
 
-    # 统一绘图
     plt.figure(figsize=(16, 6))
     plt.subplot(1, 2, 1)
     for n_heads, data in results.items():
@@ -760,7 +748,6 @@ def test_model_depth_simple(data_path, num_epochs=10):
 
     for depth in depths_to_test:
         print(f"\n{'='*20} Testing Model Depth: {depth} {'='*20}")
-        # 固定其他参数，只改变模型深度
         test_losses, test_accs = run_single_training_original(
             data_path=data_path, embed_dim=128, num_heads=4, n_encoder_layers=depth, 
             n_decoder_layers=depth, num_hiddens=256, dropout=0.1, batch_size=32, 
@@ -768,7 +755,6 @@ def test_model_depth_simple(data_path, num_epochs=10):
         )
         results[depth] = {'test_loss': test_losses, 'test_acc': test_accs}
         
-    # 统一绘图
     plt.figure(figsize=(16, 6))
     plt.subplot(1, 2, 1)
     for depth, data in results.items():
@@ -789,11 +775,11 @@ if __name__ == "__main__":
 
     epoch = 5 
 
-    print("--- 开始测试不同学习率 ---")
+    print("测试不同学习率")
     test_learning_rates_simple(data_path=DATA_PATH, num_epochs=epoch)
     
-    print("\n--- 开始测试不同注意力头数 ---")
+    print("\n测试不同注意力头数")
     test_attention_heads_simple(data_path=DATA_PATH, num_epochs=epoch)
     
-    print("\n--- 开始测试不同模型深度 ---")
+    print("\n测试不同模型深度")
     test_model_depth_simple(data_path=DATA_PATH, num_epochs=epoch)
