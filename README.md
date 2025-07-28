@@ -70,7 +70,8 @@ test函数用来观察模型在测试集上的准确率
 ![图片](assets/download9.png)  
 ## 3. 子任务2
 语料是ai给我编的小说
-![图片](assets/download10.png)
+![图片](assets/download10.png)  
+这个loss很奇怪哈哈哈哈哈哈
 ## 4.测试不同超参数对训练效果的影响
 (1) 学习率  
 ![图片](assets/download11.png)
