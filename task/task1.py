@@ -7,24 +7,25 @@ import matplotlib.pyplot as plt
 from collections import Counter
 from sklearn.model_selection import train_test_split
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# 1.加载数据集
+# 加载训练集
 data_file = os.path.join('..','data','new_train.tsv')
 data = pd.read_csv(data_file,sep='\t')
 X = data.iloc[:,:-1].values
 y = data.iloc[:,-1].values
-# 2.划分训练集和验证集
+# 划分训练集和验证集
 X_train_pre,X_valid_pre,y_train,y_valid = train_test_split(X,y,test_size=0.2,random_state=1,stratify=y)
 y_train = torch.tensor(y_train).to(device)
 y_valid = torch.tensor(y_valid).to(device)
+# 加载测试集
 test_file = os.path.join('..','data','new_test.tsv')
 test = pd.read_csv(test_file,sep='\t')
 X_test_pre = test.iloc[:,:-1].values
 y_test = torch.tensor(test.iloc[:,-1].values).to(device)
-# 3.数据集预处理
+# 数据集预处理
 def preprocess_text(text):
     text = " ".join(text.flatten())
     text = text.lower()
-    text = re.sub(r'[^\w\s]','',text)
+    # text = re.sub(r'[^\w\s]','',text)
     words = text.split()
     return words
 X_train = [preprocess_text(text) for text in X_train_pre]
@@ -65,6 +66,7 @@ vocab_bow = build_vocab(X_train)
 X_train_bow = text_to_vector(X_train,vocab_bow).to(device)
 X_valid_bow = text_to_vector(X_valid,vocab_bow).to(device)
 X_test_bow = text_to_vector(X_test,vocab_bow).to(device)
+
 # n-gram
 vocab_ngram = build_vocab(X_train,ngram=2)
 X_train_ngram = text_to_vector(X_train,vocab_ngram,ngram=2).to(device)
@@ -78,7 +80,7 @@ def softmax(x):
     exps = torch.exp(x-x.max(dim=1,keepdim=True).values)
     return exps / exps.sum(dim=1,keepdim=True)
 class Mymodel(nn.Module):
-    def __init__(self,input_dims=10000,hidden_dims=30,output_dims=5):
+    def __init__(self,input_dims=10000,hidden_dims=50,output_dims=5):
         super().__init__()
         self.W1 = nn.Parameter(torch.randn(input_dims,hidden_dims) * 0.1)
         self.b1 = nn.Parameter(torch.zeros(hidden_dims))

@@ -67,7 +67,7 @@ X_valid = pad_truncate(X_valid).to(device)
 X_test = pad_truncate(X_test).to(device)
 # 7.定义模型
 class TextCNN(nn.Module):
-    def __init__(self,vocab_size,embed_dim,num_classes,num_channels=100,kernel_size=[3,4,5],dropout=0.7):
+    def __init__(self,vocab_size,embed_dim,num_classes,num_channels=100,kernel_size=[3,4,5],dropout=0.1):
         super(TextCNN,self).__init__()
         self.embedding = nn.Embedding(vocab_size,embed_dim)
         self.convs = nn.ModuleList([nn.Conv1d(in_channels=embed_dim,out_channels=num_channels,kernel_size=k) for k in kernel_size])

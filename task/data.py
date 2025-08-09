@@ -1,67 +1,72 @@
-import random
+# 文件名: generate_data.py
 import pandas as pd
-from typing import List, Tuple
+import random
 
-def generate_addition_problem(n_digits_1: int, n_digits_2: int) -> Tuple[str, str]:
-    """生成一组加法题：输入字符串和输出结果字符串"""
-    a = random.randint(10**(n_digits_1-1), 10**n_digits_1 - 1)
-    b = random.randint(10**(n_digits_2-1), 10**n_digits_2 - 1)
-    input_str = f"{a}+{b}"
-    output_str = str(a + b)
-    return input_str, output_str
+def generate_problem_by_max_digits(max_d1, max_d2):
+    """
+    根据给定的最大位数，随机生成一个加法问题。
+    这会产生不对齐的例子，例如 max_d1=3, max_d2=3,
+    可能会生成 1位数+3位数, 2位数+2位数, 3位数+1位数 等组合。
+    """
+    d1 = random.randint(1, max_d1)
+    d2 = random.randint(1, max_d2)
+    
+    # 为了让数据更丰富，有70%的概率取到最大位数
+    if random.random() < 0.7:
+        d1 = max_d1
+    if random.random() < 0.7:
+        d2 = max_d2
+        
+    num1 = random.randint(0, 10**d1 - 1)
+    num2 = random.randint(0, 10**d2 - 1)
+    
+    result = num1 + num2
+    return f"{num1}+{num2}={result}"
 
-def generate_dataset(n_samples: int, digit_pairs: List[Tuple[int, int]]) -> pd.DataFrame:
-    """生成一批样本，digit_pairs 形如 [(3,3), (3,4)]"""
-    data = []
-    for _ in range(n_samples):
-        d1, d2 = random.choice(digit_pairs)
-        inp, out = generate_addition_problem(d1, d2)
-        data.append((inp, out))
-    df = pd.DataFrame(data, columns=["input", "output"])
-    return df
+def generate_final_dataset(total_samples, output_filename):
+    """
+    生成一个内容多样、不重复的数据集。
+    """
+    print(f"开始生成最终版数据集，总目标样本数: {total_samples}...")
+    
+    all_problems = set() # 使用全局集合来保证所有问题的唯一性
+    
+    # 定义不同难度等级的最大位数组合
+    # 这有助于确保我们能生成足够多样性的数据
+    level_definitions = [
+        (1, 1), (2, 2), (3, 3), (4, 4), (5, 5),
+        (1, 2), (1, 3), (1, 4), (1, 5),
+        (2, 3), (2, 4), (2, 5),
+        (3, 4), (3, 5),
+        (4, 5)
+    ]
 
-# 保存数据
-def save_dataset(df: pd.DataFrame, path: str):
-    df.to_csv(path, index=False)
-    print(f"✅ 数据集已保存到 {path}，共 {len(df)} 条样本")
+    while len(all_problems) < total_samples:
+        max_d1, max_d2 = random.choice(level_definitions)
+        
+        problem = generate_problem_by_max_digits(max_d1, max_d2)
+        all_problems.add(problem)
+        
+        # 打印进度
+        if len(all_problems) % 500 == 0 and len(all_problems) > 0:
+            print(f"  已生成 {len(all_problems)} / {total_samples} 条不重复数据...")
 
-# 字符级 Tokenizer
-class CharTokenizer:
-    def __init__(self, data: pd.DataFrame):
-        vocab = set("".join(data["input"].tolist() + data["output"].tolist()))
-        self.vocab = sorted(list(vocab))
-        self.pad_token = "<PAD>"
-        self.sos_token = "<SOS>"
-        self.eos_token = "<EOS>"
-        self.vocab = [self.pad_token, self.sos_token, self.eos_token] + self.vocab
-        self.token2id = {ch: i for i, ch in enumerate(self.vocab)}
-        self.id2token = {i: ch for ch, i in self.token2id.items()}
+    print(f"\n总共生成 {len(all_problems)} 条数据。")
+    
+    final_problems_list = list(all_problems)
+    random.shuffle(final_problems_list) # 在保存前打乱一下顺序
 
-    def encode(self, s: str, add_sos_eos=True) -> List[int]:
-        ids = [self.token2id[c] for c in s]
-        if add_sos_eos:
-            ids = [self.token2id[self.sos_token]] + ids + [self.token2id[self.eos_token]]
-        return ids
+    df = pd.DataFrame(final_problems_list, columns=['text'])
+    
+    df.to_csv(output_filename, index=False)
+    
+    print(f"最终数据集已成功保存至 {output_filename}")
 
-    def decode(self, ids: List[int]) -> str:
-        tokens = [self.id2token[i] for i in ids if i != self.token2id[self.pad_token]]
-        if self.sos_token in tokens:
-            tokens = tokens[tokens.index(self.sos_token)+1:]
-        if self.eos_token in tokens:
-            tokens = tokens[:tokens.index(self.eos_token)]
-        return "".join(tokens)
-
-    def vocab_size(self):
-        return len(self.vocab)
-
-
-# 生成数据
-digit_combinations = [(3,3), (3,4), (4,3), (4,4), (3,5), (5,3)]
-df = generate_dataset(n_samples=5000, digit_pairs=digit_combinations)
-save_dataset(df, "addition_dataset.csv")
-
-# 构造 tokenizer
-tokenizer = CharTokenizer(df)
-print("vocab:", tokenizer.vocab)
-print("示例encode:", tokenizer.encode("123+456"))
-print("示例decode:", tokenizer.decode(tokenizer.encode("123+456")))
+if __name__ == "__main__":
+    TOTAL_SAMPLES = 5000
+    OUTPUT_FILENAME = 'addition_dataset_final.csv'
+    
+    generate_final_dataset(
+        total_samples=TOTAL_SAMPLES,
+        output_filename=OUTPUT_FILENAME
+    )
